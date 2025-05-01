@@ -53,13 +53,13 @@ A aplicação utiliza o seguinte fluxo de processamento:
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/facedetect-ai.git
-   cd facedetect-ai
+   git clone https://github.com/seu-usuario/opencv.git
+   cd opencv
    ```
 
 2. Abra o arquivo index.html em um servidor web local ou hospede os arquivos em um servidor web.
 
-3. Alternativamente, acesse a versão online em [https://seu-site.com/facedetect-ai](https://seu-site.com/facedetect-ai) (substitua pelo link real).
+3. Alternativamente, acesse a versão online em [https://seu-site.com/opencv](https://seu-site.com/opencv) (substitua pelo link real).
 
 4. Permita o acesso à sua webcam quando solicitado pelo navegador.
 
