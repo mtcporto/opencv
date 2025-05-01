@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceDetect AI - Detecção Facial com OpenCV.js</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4e54c8;
+            --secondary-color: #8f94fb;
+            --accent-color: #00e676;
+            --dark-bg: #1a1a2e;
+            --light-text: #f5f5f5;
+            --card-bg: rgba(26, 26, 46, 0.8);
+            --border-radius: 10px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg), #0f0f1e);
+            color: var(--light-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 90% 10%, rgba(78, 84, 200, 0.1), transparent 40%),
+                        radial-gradient(circle at 10% 90%, rgba(143, 148, 251, 0.1), transparent 40%);
+            z-index: -1;
+        }
+
+        .header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .app-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .app-subtitle {
+            font-size: 1rem;
+            font-weight: 300;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            border-radius: var(--border-radius);
+            background: var(--card-bg);
+            border: 2px solid rgba(78, 84, 200, 0.6);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .video-wrapper:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        #videoContainer {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 75%; /* 4:3 aspect ratio */
+        }
+
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            border-radius: calc(var(--border-radius) - 2px);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: calc(var(--border-radius) - 2px);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        #status {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 12px 18px;
+            border-radius: var(--border-radius);
+            width: 100%;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 400;
+            transition: all 0.3s ease;
+            color: var(--light-text);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+        }
+
+        .status-loading {
+            background: linear-gradient(45deg, rgba(20, 20, 35, 0.8), rgba(30, 30, 60, 0.8)) !important;
+            border-left: 4px solid var(--primary-color) !important;
+        }
+
+        .status-success {
+            background: linear-gradient(45deg, rgba(0, 40, 0, 0.7), rgba(0, 30, 0, 0.7)) !important;
+            border-left: 4px solid var(--accent-color) !important;
+        }
+
+        .status-error {
+            background: linear-gradient(45deg, rgba(60, 0, 0, 0.7), rgba(40, 0, 0, 0.7)) !important;
+            border-left: 4px solid #ff5252 !important;
+        }
+
+        .button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .button-accent {
+            background: linear-gradient(135deg, #00c853, var(--accent-color));
+        }
+
+        .button-disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .loading-indicator {
+            display: inline-block;
+            margin-right: 8px;
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .app-title {
+                font-size: 1.8rem;
+            }
+            
+            .app-subtitle {
+                font-size: 0.9rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+
+        /* Animação de fade in para os elementos */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header, .video-wrapper, .controls, footer {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .video-wrapper { animation-delay: 0.1s; }
+        .controls { animation-delay: 0.2s; }
+        footer { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="app-title">FaceDetect AI</h1>
+        <p class="app-subtitle">Detecção facial em tempo real com OpenCV.js</p>
+    </div>
+
+    <div class="main-container">
+        <div class="video-wrapper">
+            <div id="videoContainer">
+                <video id="video" width="640" height="480" autoplay playsinline muted></video>
+                <canvas id="canvas" width="640" height="480"></canvas>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div id="status" class="status-loading">
+                <span class="loading-indicator"></span> Carregando OpenCV.js...
+            </div>
+            
+            <button id="startBtn" class="button button-disabled" disabled>
+                Iniciar Câmera
+            </button>
+            
+            <button id="stopBtn" class="button button-disabled" disabled>
+                Parar Detecção
+            </button>
+        </div>
+
+        <div id="stats" class="stats" style="display: none;">
+            <div class="stat-item">
+                <span id="facesDetected" class="stat-value">0</span>
+                <span class="stat-label">Rostos</span>
+            </div>
+            <div class="stat-item">
+                <span id="fps" class="stat-value">0</span>
+                <span class="stat-label">FPS</span>
+            </div>
+            <div class="stat-item">
+                <span id="resolution" class="stat-value">640×480</span>
+                <span class="stat-label">Resolução</span>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Desenvolvido com OpenCV.js & Tecnologias Web Modernas &copy; <span id="currentYear">2025</span>
+    </footer>
+
+    <script type="text/javascript">
+        // Elementos DOM
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const statusElement = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statsElement = document.getElementById('stats');
+        const facesDetectedElement = document.getElementById('facesDetected');
+        const fpsElement = document.getElementById('fps');
+        const resolutionElement = document.getElementById('resolution');
+        const currentYearElement = document.getElementById('currentYear');
+
+        // Configurações
+        const faceCascadeFilename = 'haarcascade_frontalface_default.xml';
+        
+        // Variáveis globais
+        let faceCascade;
+        let src;
+        let gray;
+        let faces;
+        let cap;
+        let cvReady = false;
+        let stream;
+        let isProcessing = false;
+        let lastTime = 0;
+        let frameCount = 0;
+        let totalProcessingTime = 0;
+        let fpsUpdateInterval;
+        let detectionActive = false;
+        let currentYear = new Date().getFullYear();
+        
+        // Atualiza o ano atual
+        currentYearElement.textContent = currentYear;
+
+        /**
+         * Atualiza o status na UI com classes apropriadas
+         * @param {string} message - Mensagem de status
+         * @param {string} type - Tipo de status: 'loading', 'success', 'error'
+         */
+        function updateStatus(message, type = 'loading') {
+            console.log(message);
+            statusElement.textContent = message;
+            
+            // Remove todas as classes de status existentes
+            statusElement.classList.remove('status-loading', 'status-success', 'status-error');
+            
+            // Adiciona a classe de status apropriada
+            statusElement.classList.add(`status-${type}`);
+            
+            // Adiciona o indicador de carregamento para status "loading"
+            if (type === 'loading') {
+                const loadingIndicator = document.createElement('span');
+                loadingIndicator.className = 'loading-indicator';
+                statusElement.prepend(loadingIndicator);
+            }
+        }
+
+        /**
+         * Manipulador de erro para carregamento do OpenCV
+         */
+        function onOpenCvError(err) {
+            updateStatus('Falha ao carregar OpenCV.js. Verifique sua conexão e tente novamente.', 'error');
+            console.error('Erro ao carregar OpenCV.js:', err);
+        }
+
+        /**
+         * Função chamada quando OpenCV.js é carregado
+         */
+        function onOpenCvReady() {
+            // Verifica se os componentes essenciais do OpenCV estão prontos
+            if (typeof cv !== 'undefined' && 
+                typeof cv.Mat !== 'undefined' && 
+                typeof cv.CascadeClassifier !== 'undefined' && 
+                typeof cv.RectVector !== 'undefined') {
+                
+                cvReady = true;
+                updateStatus('OpenCV.js pronto. Inicializando recursos...', 'success');
+                
+                // Inicializa os objetos Mat
+                try {
+                    src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+                    gray = new cv.Mat();
+                    faces = new cv.RectVector();
+                    loadFaceDetectorModel();
+                } catch (err) {
+                    updateStatus('Erro ao inicializar recursos do OpenCV', 'error');
+                    console.error('Erro na inicialização:', err);
+                }
+            } else {
+                updateStatus('OpenCV.js carregado, aguardando inicialização completa...', 'loading');
+                setTimeout(onOpenCvReady, 100); // Tenta novamente após um curto intervalo
+            }
+        }
+
+        /**
+         * Carrega o modelo de detecção facial
+         */
+        function loadFaceDetectorModel() {
+            if (!cvReady) {
+                updateStatus('OpenCV não está pronto. Aguarde...', 'error');
+                return;
+            }
+            
+            updateStatus('Carregando modelo de detecção facial...', 'loading');
+            const faceCascadeURL = `https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/${faceCascadeFilename}`;
+            const request = new XMLHttpRequest();
+            request.open('GET', faceCascadeURL, true);
+            request.responseType = 'arraybuffer';
+
+            request.onload = function() {
+                if (request.readyState === 4) {
+                    if (request.status === 200) {
+                        const data = new Uint8Array(request.response);
+                        const cascadeFilePath = '/' + faceCascadeFilename;
+                        
+                        try {
+                            cv.FS_createDataFile('/', faceCascadeFilename, data, true, false, false);
+                            faceCascade = new cv.CascadeClassifier();
+                            const loadSuccess = faceCascade.load(cascadeFilePath);
+
+                            if (!loadSuccess || faceCascade.empty()) {
+                                updateStatus('Falha ao carregar o modelo de detecção facial', 'error');
+                                if (faceCascade) faceCascade.delete();
+                                faceCascade = null;
+                            } else {
+                                updateStatus('Modelo de detecção facial carregado com sucesso', 'success');
+                                // Habilita o botão de iniciar
+                                startBtn.disabled = false;
+                                startBtn.classList.remove('button-disabled');
+                                // Configura os manipuladores de eventos dos botões
+                                setupEventListeners();
+                            }
+                            
+                            // Limpa o arquivo do sistema de arquivos virtual
+                            cv.FS_unlink(cascadeFilePath);
+                        } catch (err) {
+                            updateStatus('Erro ao inicializar o detector facial', 'error');
+                            console.error('Erro no CascadeClassifier:', err);
+                            if (faceCascade) faceCascade.delete();
+                            faceCascade = null;
+                            try { cv.FS_unlink(cascadeFilePath); } catch (e) {}
+                        }
+                    } else {
+                        updateStatus(`Erro ao baixar modelo: ${request.status}`, 'error');
+                    }
+                }
+            };
+            
+            request.onerror = function() {
+                updateStatus('Erro de conexão ao baixar o modelo. Verifique sua internet.', 'error');
+            };
+            
+            request.send();
+        }
+
+        /**
+         * Configura os listeners de eventos para os botões
+         */
+        function setupEventListeners() {
+            startBtn.addEventListener('click', startDetection);
+            stopBtn.addEventListener('click', stopDetection);
+        }
+
+        /**
+         * Inicia a detecção facial
+         */
+        function startDetection() {
+            if (!cvReady || !faceCascade || faceCascade.empty()) {
+                updateStatus('O detector facial não está pronto', 'error');
+                return;
+            }
+            
+            if (detectionActive) return;
+            
+            updateStatus('Acessando webcam...', 'loading');
+            
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: "user" 
+                }, 
+                audio: false 
+            })
+            .then(function(mediaStream) {
+                stream = mediaStream;
+                video.srcObject = mediaStream;
+                
+                video.onloadedmetadata = function() {
+                    video.play().then(() => {
+                        // Define o tamanho real do vídeo
+                        const videoTracks = stream.getVideoTracks();
+                        if (videoTracks.length > 0) {
+                            const settings = videoTracks[0].getSettings();
+                            resolutionElement.textContent = `${settings.width}×${settings.height}`;
+                        }
+                        
+                        // Inicia o processamento
+                        cap = new cv.VideoCapture(video);
+                        detectionActive = true;
+                        updateStatus('Detecção facial ativada', 'success');
+                        
+                        // Exibe estatísticas e atualiza botões
+                        statsElement.style.display = 'flex';
+                        startBtn.disabled = true;
+                        startBtn.classList.add('button-disabled');
+                        stopBtn.disabled = false;
+                        stopBtn.classList.remove('button-disabled');
+                        
+                        // Inicia o contador de FPS
+                        lastTime = performance.now();
+                        frameCount = 0;
+                        totalProcessingTime = 0;
+                        fpsUpdateInterval = setInterval(updateFPS, 1000);
+                        
+                        // Inicia o loop de detecção
+                        requestAnimationFrame(detectFacesLoop);
+                    }).catch(err => {
+                        updateStatus('Erro ao iniciar o vídeo', 'error');
+                        console.error("Erro ao iniciar o vídeo:", err);
+                    });
+                };
+            })
+            .catch(function(err) {
+                updateStatus('Não foi possível acessar a webcam. Verifique as permissões.', 'error');
+                console.error("Erro de acesso à webcam:", err);
+            });
+        }
+
+        /**
+         * Para a detecção facial e libera recursos
+         */
+        function stopDetection() {
+            if (!detectionActive) return;
+            
+            detectionActive = false;
+            updateStatus('Detecção facial desativada', 'success');
+            
+            // Para o intervalo de atualização de FPS
+            clearInterval(fpsUpdateInterval);
+            
+            // Restaura os botões
+            startBtn.disabled = false;
+            startBtn.classList.remove('button-disabled');
+            stopBtn.disabled = true;
+            stopBtn.classList.add('button-disabled');
+            
+            // Para a stream da webcam
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            // Limpa o canvas
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset das estatísticas
+            facesDetectedElement.textContent = '0';
+            fpsElement.textContent = '0';
+        }
+
+        /**
+         * Loop principal de detecção facial
+         */
+        function detectFacesLoop() {
+            if (!detectionActive) return;
+            
+            if (!cvReady || !faceCascade || faceCascade.empty() || !cap) {
+                updateStatus('Erro nos recursos de detecção', 'error');
+                return;
+            }
+
+            try {
+                const startProcessTime = performance.now();
+                
+                // Lê um frame da webcam para 'src'
+                cap.read(src);
+                
+                if (src.empty()) {
+                    console.warn("Frame vazio");
+                    if (detectionActive) requestAnimationFrame(detectFacesLoop);
+                    return;
+                }
+
+                // Converte para escala de cinza para melhor performance
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+                
+                // Aplica equalização de histograma para melhorar contraste
+                cv.equalizeHist(gray, gray);
+
+                // Parâmetros para detectMultiScale
+                const scaleFactor = 1.1;       // Quanto reduzir a imagem a cada escala
+                const minNeighbors = 5;        // Qualidade da detecção
+                const flags = 0;               // Flags não usados no OpenCV 3+
+                const minSize = new cv.Size(30, 30); // Tamanho mínimo do rosto
+
+                // Detecta rostos
+                faceCascade.detectMultiScale(gray, faces, scaleFactor, minNeighbors, flags, minSize);
+                
+                // Limpa o canvas e desenha o vídeo
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Obtém o número de rostos detectados
+                const numFaces = faces.size();
+                facesDetectedElement.textContent = numFaces;
+
+                // Desenha os retângulos e adiciona efeitos visuais
+                for (let i = 0; i < numFaces; ++i) {
+                    const face = faces.get(i);
+                    
+                    // Desenha o retângulo principal
+                    context.lineWidth = 3;
+                    const gradient = context.createLinearGradient(face.x, face.y, face.x + face.width, face.y + face.height);
+                    gradient.addColorStop(0, '#4e54c8');
+                    gradient.addColorStop(1, '#00e676');
+                    context.strokeStyle = gradient;
+                    context.strokeRect(face.x, face.y, face.width, face.height);
+                    
+                    // Desenha cantos destacados
+                    const cornerSize = Math.min(20, Math.min(face.width, face.height) / 4);
+                    context.lineWidth = 4;
+                    context.strokeStyle = '#00e676';
+                    
+                    // Canto superior esquerdo
+                    context.beginPath();
+                    context.moveTo(face.x, face.y + cornerSize);
+                    context.lineTo(face.x, face.y);
+                    context.lineTo(face.x + cornerSize, face.y);
+                    context.stroke();
+                    
+                    // Canto superior direito
+                    context.beginPath();
+                    context.moveTo(face.x + face.width - cornerSize, face.y);
+                    context.lineTo(face.x + face.width, face.y);
+                    context.lineTo(face.x + face.width, face.y + cornerSize);
+                    context.stroke();
+                    
+                    // Canto inferior esquerdo
+                    context.beginPath();
+                    context.moveTo(face.x, face.y + face.height - cornerSize);
+                    context.lineTo(face.x, face.y + face.height);
+                    context.lineTo(face.x + cornerSize, face.y + face.height);
+                    context.stroke();
+                    
+                    // Canto inferior direito
+                    context.beginPath();
+                    context.moveTo(face.x + face.width - cornerSize, face.y + face.height);
+                    context.lineTo(face.x + face.width, face.y + face.height);
+                    context.lineTo(face.x + face.width, face.y + face.height - cornerSize);
+                    context.stroke();
+                }
+                
+                // Atualiza o status se mudou o número de rostos
+                if (numFaces > 0) {
+                    updateStatus(`${numFaces} rosto${numFaces > 1 ? 's' : ''} detectado${numFaces > 1 ? 's' : ''}`, 'success');
+                } else {
+                    updateStatus('Nenhum rosto detectado', 'success');
+                }
+                
+                // Cálculo do tempo de processamento para FPS
+                const endProcessTime = performance.now();
+                totalProcessingTime += (endProcessTime - startProcessTime);
+                frameCount++;
+                
+                // Continua o loop se ainda estiver ativo
+                if (detectionActive) {
+                    requestAnimationFrame(detectFacesLoop);
+                }
+                
+            } catch (err) {
+                updateStatus('Erro durante o processamento de vídeo', 'error');
+                console.error("Erro no loop de detecção:", err);
+                stopDetection(); // Para a detecção em caso de erro
+            }
+        }
+
+        /**
+         * Atualiza a contagem de FPS
+         */
+        function updateFPS() {
+            if (frameCount === 0) return;
+            
+            const now = performance.now();
+            const elapsed = now - lastTime; // tempo em ms
+            
+            // Calcula os FPS com base no número de frames
+            const fps = Math.round((frameCount * 1000) / elapsed);
+            fpsElement.textContent = fps;
+            
+            // Reset para o próximo cálculo
+            frameCount = 0;
+            lastTime = now;
+            totalProcessingTime = 0;
+        }
+
+        /**
+         * Libera recursos do OpenCV
+         */
+        function cleanupCvObjects() {
+            if (detectionActive) {
+                stopDetection();
+            }
+            
+            if (src && !src.isDeleted()) src.delete();
+            if (gray && !gray.isDeleted()) gray.delete();
+            if (faces && !faces.isDeleted()) faces.delete();
+            if (faceCascade && typeof faceCascade.delete === 'function') faceCascade.delete();
+            
+            src = gray = faces = faceCascade = cap = null;
+            cvReady = false;
+        }
+
+        // Event listeners para limpeza de recursos
+        window.addEventListener('unload', cleanupCvObjects);
+        window.addEventListener('beforeunload', cleanupCvObjects);
+    </script>
+
+    <!-- Carrega o OpenCV.js usando o CDN oficial dos docs -->
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady()" onerror="onOpenCvError(event)"></script>
+</body>
+</html>
